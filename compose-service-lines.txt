@@ -1,0 +1,9 @@
+﻿
+    build:
+    image: cwd-backend:latest
+  frontend_dev:
+    image: node:20-alpine
+    image: postgres:15-alpine
+    image: redis:7-alpine
+
+

@@ -1,0 +1,142 @@
+﻿name: cwd
+services:
+  backend:
+    build:
+      context: D:\CWD\cwd-backend
+      dockerfile: Dockerfile
+    command:
+      - sh
+      - -c
+      - npm install && npm run dev:wait
+    container_name: cwd_backend
+    depends_on:
+      postgres:
+        condition: service_started
+        required: true
+      redis:
+        condition: service_started
+        required: true
+    environment:
+      DB_HOST: postgres
+      DB_NAME: cwd_db
+      DB_PASSWORD: cwd_password
+      DB_PORT: "5432"
+      DB_USER: postgres
+      JWT_SECRET: cwd_super_secret_key_2026
+      NODE_ENV: development
+      PORT: "5000"
+      REDIS_URL: redis://redis:6379
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - const http=require('http'); const req=http.get('http://localhost:5000/health', res => process.exit(res.statusCode===200?0:1)); req.on('error', () => process.exit(1));
+      timeout: 10s
+      interval: 30s
+      retries: 5
+    image: cwd-backend:latest
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5000
+        published: "5000"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: D:\CWD\cwd-backend
+        target: /usr/src/app
+        bind: {}
+      - type: volume
+        target: /usr/src/app/node_modules
+        volume: {}
+  frontend:
+    build:
+      context: D:\CWD\cwd-frontend
+      dockerfile: Dockerfile
+    command:
+      - sh
+      - -c
+      - npm install && npm run dev -- --host 0.0.0.0
+    container_name: cwd_frontend
+    depends_on:
+      backend:
+        condition: service_started
+        required: true
+    environment:
+      NODE_ENV: development
+      VITE_API_BASE: http://backend:5000/api
+      VITE_BACKEND_URL: http://backend:5000
+    image: node:20-alpine
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "3000"
+        protocol: tcp
+      - mode: ingress
+        target: 5173
+        published: "5173"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: D:\CWD\cwd-frontend
+        target: /app
+        bind: {}
+      - type: volume
+        target: /app/node_modules
+        volume: {}
+    working_dir: /app
+  postgres:
+    container_name: cwd_postgres
+    environment:
+      POSTGRES_DB: cwd_db
+      POSTGRES_PASSWORD: cwd_password
+      POSTGRES_USER: postgres
+    image: postgres:15-alpine
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5432
+        published: "5433"
+        protocol: tcp
+    restart: always
+    volumes:
+      - type: volume
+        source: pgdata
+        target: /var/lib/postgresql/data
+        volume: {}
+      - type: bind
+        source: D:\CWD\cwd-backend\init.sql
+        target: /docker-entrypoint-initdb.d/init.sql
+        bind: {}
+  redis:
+    container_name: cwd_redis
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      timeout: 10s
+      interval: 30s
+      retries: 5
+    image: redis:7-alpine
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 6379
+        published: "6379"
+        protocol: tcp
+    restart: always
+networks:
+  default:
+    name: cwd_default
+volumes:
+  pgdata:
+    name: cwd_pgdata

@@ -1,0 +1,6 @@
+version: '3.8'
+services:
+  frontend: null
+  frontend_dev:
+    image: node:20-alpine
+    command: sh -c "echo ok"

@@ -1,0 +1,12 @@
+﻿name: cwd
+services:
+  frontend:
+    build:
+      context: D:\CWD\cwd-frontend
+      dockerfile: Dockerfile
+    image: node:20-alpine
+    networks:
+      default: null
+networks:
+  default:
+    name: cwd_default
